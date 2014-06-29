@@ -5,6 +5,17 @@
  * Copyright 2011, Ed Talmadge
  * Dual licensed under the MIT or GPL Version 2 licenses.
  *
+ *
+ * Update PHF
+ * 1. When you only show 1 slide at a time, the first group number button isn't there, so, when you have 3 slides, only button 2 an 3 are there
+ * 2. Added a callback method that will be executed after slide, so you can do something with the data from the active slide
+ * e.g.:
+ * $("#agendaCarousel").agile_carousel({
+ *      callback: function(that){
+ *        console.log(that.find(".ac_selected"));
+ *      },
+ *      .....
+ * });
  * 
  */
 
@@ -13,17 +24,20 @@
     $.fn.agile_carousel = function (options) {
 
         var defaults = {
-            timer: 0,
+            timer: 3000,
             continuous_scrolling: false,
             transition_type: "slide",
-            transition_time: 600,
+            transition_time: 1600,
 			number_slides_visible: 1,
-			change_on_hover: "",
+            persistent_content: "",
+            no_control_set: "",
+            change_on_hover: "",
             control_set_1: "",
             control_set_2: "",
             control_set_3: "",
             control_set_4: "",
-            control_set_5: ""
+            control_set_5: "",
+            callback: null
         };
 
         options = $.extend(defaults, options);
@@ -83,6 +97,7 @@
 			var $this = "";
 			var timer_data = "";
 			var ac_timer = "";
+			var callback = options.callback;
 
             // get the number of slides
             $.each(carousel_data, function (key, value) {
@@ -107,10 +122,13 @@
 
             ////////////////////////
             // Group Numbered Buttons
-            //////////////////////// 
+            ////////////////////////
 
             var j = 0;
             var i = 0;
+            //PH:bugfix, with only one slide per page, the first groupnumber button wont show.
+
+            var firstSet = false;
             for (i = 0; i < number_of_slides; i++) {
 
                 if (i === 0) {
@@ -119,11 +137,16 @@
                 var curr_num = Math.floor((i + 1) / number_slides_visible) * number_slides_visible + 1;
                 if (curr_num !== new_num && curr_num <= number_of_slides) {
                     slide_number_conversion_array[j] = curr_num;
-
-                    ac_group_numbered_buttons += "<div class='slide_number_" + curr_num + " group_numbered_button slide_button " + get_trigger_type("group_numbered_buttons") + "' data-options='{\"button_type\":\"group_numbered_button\",\"button_action\":\"direct\",\"go_to\":" + curr_num + ", \"trigger_type\":\"" + ac_trigger_type + "\",\"disabled\": false}'>" + (j + 1) + "</div>";
+                    if(!firstSet){
+                        firstSet = true;
+                        ac_group_numbered_buttons += "<div class='slide_number_1 group_numbered_button slide_button " + get_trigger_type("group_numbered_buttons") + "' data-options='{\"button_type\":\"group_numbered_button\",\"button_action\":\"direct\",\"go_to\":1, \"trigger_type\":\"" + ac_trigger_type + "\",\"disabled\": false}'>" + (j + 1) + "</div>";
+                    }
+                    if(curr_num!=1){
+                        ac_group_numbered_buttons += "<div class='slide_number_" + curr_num + " group_numbered_button slide_button " + get_trigger_type("group_numbered_buttons") + "' data-options='{\"button_type\":\"group_numbered_button\",\"button_action\":\"direct\",\"go_to\":" + curr_num + ", \"trigger_type\":\"" + ac_trigger_type + "\",\"disabled\": false}'>" + (j + 1) + "</div>";
+                    }
 
                     new_num = curr_num;
-                    
+
                     j++;
                 }
 
@@ -134,37 +157,37 @@
             } // for
             ////////////////////////
             // Pause Button
-            //////////////////////// 
+            ////////////////////////
             ac_pause += "<span class='pause_button slide_button pause' data-options='{\"button_type\":\"pause_button\",\"trigger_type\": \"none\",\"disabled\": false,\"paused\": false}'>Pause</span>";
 
             ////////////////////////
             // Previous Button
-            //////////////////////// 
+            ////////////////////////
             ac_previous_button += "<span class='previous_next_button previous_button slide_button " + get_trigger_type("previous_button") + "' data-options='{\"button_type\":\"previous_button\",\"button_action\":\"previous\",\"trigger_type\": \"" + ac_trigger_type + "\",\"disabled\": false}'>Prev</span>";
 
             ////////////////////////
             // Next Button
-            //////////////////////// 
+            ////////////////////////
             ac_next_button += "<span class='previous_next_button next_button slide_button " + get_trigger_type("next_button") + "' data-options='{\"button_type\":\"next_button\",\"button_action\":\"next\",\"trigger_type\": \"" + ac_trigger_type + "\",\"disabled\": false}'>Next</span>";
 
             ////////////////////////
             // Hover Previous Button
-            //////////////////////// 
+            ////////////////////////
             ac_hover_previous_button += "<div class='hover_previous_next_button hover_previous_button slide_button " + get_trigger_type("hover_previous_button") + "' data-options='{\"button_type\":\"hover_previous_button\",\"button_action\":\"previous\",\"trigger_type\": \"" + ac_trigger_type + "\",\"disabled\": false}'><span style='opacity: 0;' class='hover_previous_next_button_inner'>Prev</span></div>";
 
             ////////////////////////
             // Hover Next Button
-            //////////////////////// 
+            ////////////////////////
             ac_hover_next_button += "<div class='hover_previous_next_button hover_next_button slide_button " + get_trigger_type("hover_next_button") + "' data-options='{\"button_type\":\"hover_next_button\",\"button_action\":\"next\",\"trigger_type\": \"" + ac_trigger_type + "\",\"disabled\": false}'><span style='opacity: 0;' class='hover_previous_next_button_inner'>Next</span></div>";
 
             ////////////////////////
             // Slide Count
-            //////////////////////// 
+            ////////////////////////
             ac_slide_count += "<span class='slide_count'>" + number_of_slides + "</span>";
 
             ////////////////////////
             // Current Slide Number
-            //////////////////////// 
+            ////////////////////////
             ac_current_slide_number += "<span class='current_slide_number'>1</span>";
 
             // render beginning of div containers
@@ -216,7 +239,7 @@
 
                     ////////////////////////
                     // Thumbnails
-                    ////////////////////////						
+                    ////////////////////////
                     if (thumbnail_button) {
 
                         if (i == 1) {
@@ -366,7 +389,7 @@
             var hover_next_button = obj.find(".hover_next_button");
             var hover_next_button_length = hover_next_button.length;
 
-            
+
             function disable_buttons(slide_num) {
 
                 if (continuous_scrolling === false && number_slides_visible < 2) {
@@ -415,7 +438,7 @@
                     }
 
                 } // if
-				
+
                 if (continuous_scrolling === false && number_slides_visible > 1) {
 
                     // if first slide
@@ -470,6 +493,11 @@
             // update slide number
 
             function update_current_slide_number(slide_num) {
+
+                if(!callback != null && typeof callback == 'function'){
+                    callback(obj);
+                }
+                //console.log(obj.find(".ac_selected"));
                 if (current_slide_number_display_length > 0) {
                     current_slide_number_display.html(slide_num);
                 }
@@ -482,7 +510,7 @@
                 obj.find(".ac_selected").removeClass("ac_selected");
                 obj.find(".slide_number_" + slide_num).addClass("ac_selected");
             }
-            
+
             // prepare carousel for number_slides_visible = 1
             if (number_slides_visible == 1) {
                 ac_slides.eq(0).css({
@@ -705,8 +733,8 @@
                             }, {
                                 duration: transition_time
                             });
-							
-                        } // if transition type is slide										
+
+                        } // if transition type is slide
 
 
                         /////////////////////////////////
@@ -720,7 +748,7 @@
                             //ac_slides.stop();
                             //}
                             // change slide position
-                            // rest of the slides 
+                            // rest of the slides
                             ac_slides.not(current_slide, next_slide).css({
                                 "top": "-5000px",
                                 "left": 0,
@@ -754,7 +782,7 @@
 
 
 
-                        } // if transition type is slide	
+                        } // if transition type is slide
                     } // if current slide is not the next slide
                 } // if slide button is not disabled && transition complete
 
@@ -762,18 +790,18 @@
                 add_selected_class(next_slide_number);
 
             } // transition_slides;
-			
+
 
 
 
 			/////////////////////
 			///////// button behavior
 			////////////////////
-			
-			
+
+
             var agile_carousel_buttons_click = obj.find(".ac_click");
             var agile_carousel_buttons_hover = obj.find(".ac_hover");
-			
+
             // start timer
             if(timer !== 0){
                 ac_timer = setInterval(timer_transition, timer);
@@ -795,7 +823,7 @@
 			/////////////////
 			//////// click button
 			////////////////
-		
+
 			 $(agile_carousel_buttons_click).click(function(){
 				 pause_slideshow();
 				if(obj.find(':animated').length < 1){
@@ -805,26 +833,26 @@
 					// don't use timer on next & previous buttons... causes strage, infinite cycle
 					if($this.data("options").button_action != "next" && $this.data("options").button_action != "previous") {
 							function check_transition(){
-									
+
 									if(ac_slides_container.find(':animated').length < 1){
 										transition_slides($this.data().options);
 										clearInterval($this.data("options").timeout);
 									} // if
 								} // function
-								
-							t = setInterval(check_transition,30);	
-								
+
+							t = setInterval(check_transition,30);
+
 							$this.data("options").timeout = t;
 					}// if
 				} // else
-			
+
 			}); // click
-			
-			
+
+
 			/////////////////
 			//////// hover button
 			////////////////
-			
+
 			$(agile_carousel_buttons_hover).hover(function() {
 				pause_slideshow();
     			if(ac_slides_container.find(':animated').length < 1){
@@ -832,21 +860,21 @@
 
 				} else {
 						$this = $(this);
-						
+
 						function check_transition(){
-								
+
 								if(ac_slides_container.find(':animated').length < 1){
 									transition_slides($this.data().options);
 									clearInterval($this.data("options").timeout);
 								} // if
 							} // function
-							
-						t = setInterval(check_transition,30);	
-							
+
+						t = setInterval(check_transition,30);
+
 						$this.data("options").timeout = t;
-					
+
 					} // else
-				
+
 				}, function() {
     				$this = $(this);
 					clearInterval($this.data("options").timeout);
@@ -867,12 +895,12 @@
                 "trigger_type": "ac_click"
             };
 
-			
+
             function timer_transition() {
                 transition_slides(timer_data);
             }
 
-           
+
 
             function play_slideshow() {
                 clearInterval(ac_timer);
@@ -897,7 +925,7 @@
             }); // click
 
             // hover previous and hover next buttons
-            
+
             $('.hover_previous_next_button').hover(function() {
                 $(this).find(".hover_previous_next_button_inner").stop().fadeTo("fast", 0.85);
             },
